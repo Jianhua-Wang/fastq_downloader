@@ -3,6 +3,8 @@ import requests
 from ftplib import FTP
 from subprocess import call
 import argparse
+import os
+
 
 
 # # Try to get ENA FTP url
@@ -12,14 +14,14 @@ def get_ENA_url(srr_id):
     infer the ENA FTP url according the SRR (or ERR) id,
     if the file or files are archived by EBI, return the urls
     else return [].
-    
+
     >>> get_ENA_url('ERR2365269')
     >>> ['ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR236/009/ERR2365269/ERR2365269_1.fastq.gz',
          'ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR236/009/ERR2365269/ERR2365269_2.fastq.gz']
     '''
-    
-    if len(srr_id) == 10:
-        ena_ftp_url = f'vol1/fastq/{srr_id[:6]}/00{srr_id[-1]}/{srr_id}/'
+
+    if len(srr_id) >= 10:
+        ena_ftp_url = f'vol1/fastq/{srr_id[:6]}/0{srr_id[-2:]}/{srr_id}/'
     else:
         ena_ftp_url = f'vol1/fastq/{srr_id[:6]}/{srr_id}/'
     ftp = FTP()
@@ -27,22 +29,22 @@ def get_ENA_url(srr_id):
     ftp.login()
     files = ftp.nlst(ena_ftp_url)
     ftp.quit()
-    
+
     return [f'ftp://ftp.sra.ebi.ac.uk/{i}' for i in files]
 
 
 # # Try to get url of original file from SRA
 
-# In the new SRA, the original sequencing read file are also can be downloaded from Amazon S3 (i.e. ERR2365269). 
+# In the new SRA, the original sequencing read file are also can be downloaded from Amazon S3 (i.e. ERR2365269).
 #
-# But this new feature is only avaliable for data submitted after later 2019. 
+# But this new feature is only avaliable for data submitted after later 2019.
 #
 # So I won't consider this approach in the short run.
 
 def get_original_url(srr_id):
     '''
     Scrapy the url of original file.
-    
+
     >>> get_original_url('ERR2365269')
     >>> ['http://ftp.sra.ebi.ac.uk/vol1/run/ERR236/ERR2365269/capt-cardio-1-R1.fastq.bz2',
          'http://ftp.sra.ebi.ac.uk/vol1/run/ERR236/ERR2365269/capt-cardio-1-R2.fastq.bz2']
@@ -70,15 +72,16 @@ def download_srr(srr_id):
     else using fasterq-dump.
     '''
     urls = get_ENA_url(srr_id)
+    py_dir = os.path.split(os.path.realpath(__file__))[0]
     if len(urls) == 0:
         print(f'Download {srr_id} using fasterq-dump')
         call(
-            f'/f/jianhua/nankai-hic/GEO/sratoolkit.2.9.6-1-ubuntu64/bin/fasterq-dump --split-files {srr_id}',
+            f'{py_dir}/fasterq-dump --split-files {srr_id}',
             shell=True)
     else:
         print(f'Download {srr_id} using axel from ENA')
         for url in urls:
-            call(f'/f/jianhua/software/axel -n 20 -a {url}', shell=True)
+            call(f'{py_dir}/axel -n 20 -a {url}', shell=True)
 
 
 # # Download SRX
@@ -88,7 +91,7 @@ def download_srx(srx_id):
     Get the SRR id under SRX and download SRR.
 
     Some SRXs contain more than one SRR (i.e. SRX5545333). Download the SRRs iteratively for these cases.
-    
+
     [TODO] Merge the SRRs under same SRX.
     '''
     response = requests.get(f'https://www.ncbi.nlm.nih.gov/sra/?term={srx_id}')
@@ -185,7 +188,7 @@ def print_logo():
 ========================================================================
      \033[1;33m/\\\033[0m
     \033[1;33m/__\\\033[0m\033[1;31m\\\033[0m            Download SRA and GEO fastq, simple and faster
-   \033[1;33m/\033[0m  \033[1;31m---\\\033[0m           
+   \033[1;33m/\033[0m  \033[1;31m---\\\033[0m
   \033[1;33m/\\\033[0m      \033[1;31m\\\033[0m          Author: Jianhua Wang
  \033[1;33m/\033[0m\033[1;32m/\\\033[0m\033[1;33m\\\033[0m     \033[1;31m/\\\033[0m         Date:   08-12-2020
  \033[1;32m/  \   /\033[0m\033[1;31m/__\\\033[0m
