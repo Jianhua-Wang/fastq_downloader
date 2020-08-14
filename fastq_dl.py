@@ -21,7 +21,7 @@ def get_ENA_url(srr_id):
     '''
 
     if len(srr_id) >= 10:
-        ena_ftp_url = f'vol1/fastq/{srr_id[:6]}/0{srr_id[-2:]}/{srr_id}/'
+        ena_ftp_url = f'vol1/fastq/{srr_id[:6]}/0{int(srr_id[9:]):>02,d}/{srr_id}/'
     else:
         ena_ftp_url = f'vol1/fastq/{srr_id[:6]}/{srr_id}/'
     ftp = FTP()
