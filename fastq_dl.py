@@ -81,7 +81,10 @@ def download_srr(srr_id):
     else:
         print(f'Download {srr_id} using axel from ENA')
         for url in urls:
-            call(f'{py_dir}/axel -n 20 -a {url}', shell=True)
+            axel_code = call(f'{py_dir}/axel -n 20 -a {url}', shell=True)
+            if axel_code != 0:
+                ascp_url = url.replace('ftp://ftp.sra.ebi.ac.uk','era-fasp@fasp.sra.ebi.ac.uk:')
+                call(f'ascp -QT -l 300m -P 33001 -i ~/anaconda3/etc/asperaweb_id_dsa.openssh -k 1 {ascp_url}',shell=True)
 
 
 # # Download SRX
